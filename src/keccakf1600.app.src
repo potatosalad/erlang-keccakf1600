@@ -1,0 +1,20 @@
+%% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
+%% vim: ts=4 sw=4 ft=erlang noet
+{application, keccakf1600, [
+	{description, "Keccak-f[1600] port driver"},
+	{vsn, "0.0.1"},
+	{id, "git"},
+	{mod, {'keccakf1600_app', []}},
+	{registered, []},
+	{applications, [
+		kernel,
+		stdlib,
+		crypto,
+		asn1,
+		public_key
+	]},
+	{modules, []},
+	{contributors, ["Andrew Bennett"]},
+	{licenses, ["Mozilla Public License Version 2.0"]},
+	{links, [{"Github", "https://github.com/potatosalad/erlang-keccakf1600"}]}
+]}.
