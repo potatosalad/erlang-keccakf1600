@@ -14,7 +14,7 @@
 		public_key
 	]},
 	{modules, []},
-	{contributors, ["Andrew Bennett"]},
+	{maintainers, ["Andrew Bennett"]},
 	{licenses, ["Mozilla Public License Version 2.0"]},
 	{links, [{"Github", "https://github.com/potatosalad/erlang-keccakf1600"}]}
 ]}.
