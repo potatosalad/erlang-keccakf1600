@@ -28,6 +28,7 @@ test/ct.cover.spec
 /priv/*.dll
 /priv/*.dylib
 /priv/*.so
+/test/cavp_SUITE_data/keccaktestvectors
 /tmp
 *.ez
 keccakf1600.d

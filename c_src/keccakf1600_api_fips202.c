@@ -2,6 +2,8 @@
 // vim: ts=8 sw=8 ft=c noet
 
 #include "keccakf1600_api_fips202.h"
+// #include "Keccak-readable-and-compact.h"
+#include "fips202.h"
 
 static int	KECCAKF1600_API_INIT(fips202, shake128);
 static void	KECCAKF1600_API_EXEC(fips202, shake128);
@@ -30,8 +32,8 @@ keccakf1600_function_t	keccakf1600_functions_fips202[] = {
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, shake128) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
-	int			outputByteLen;
+	size_t			inputByteLen;
+	size_t			outputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, shake128);
 
 static int
@@ -41,7 +43,7 @@ KECCAKF1600_API_INIT(fips202, shake128)
 	int skip;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -50,7 +52,7 @@ KECCAKF1600_API_INIT(fips202, shake128)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	skip = *index;
 
@@ -82,12 +84,7 @@ KECCAKF1600_API_INIT(fips202, shake128)
 		return -1;
 	}
 
-	if (ei_decode_long(buffer, index, (long *)&(argv->outputByteLen)) < 0) {
-		(void) driver_free(argv);
-		return -1;
-	}
-
-	if (argv->outputByteLen < 0) {
+	if (ei_decode_ulong(buffer, index, (unsigned long *)&(argv->outputByteLen)) < 0) {
 		(void) driver_free(argv);
 		return -1;
 	}
@@ -120,8 +117,8 @@ KECCAKF1600_API_EXEC(fips202, shake128)
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, shake256) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
-	int			outputByteLen;
+	size_t			inputByteLen;
+	size_t			outputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, shake256);
 
 static int
@@ -131,7 +128,7 @@ KECCAKF1600_API_INIT(fips202, shake256)
 	int skip;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -140,7 +137,7 @@ KECCAKF1600_API_INIT(fips202, shake256)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	skip = *index;
 
@@ -172,12 +169,7 @@ KECCAKF1600_API_INIT(fips202, shake256)
 		return -1;
 	}
 
-	if (ei_decode_long(buffer, index, (long *)&(argv->outputByteLen)) < 0) {
-		(void) driver_free(argv);
-		return -1;
-	}
-
-	if (argv->outputByteLen < 0) {
+	if (ei_decode_ulong(buffer, index, (unsigned long *)&(argv->outputByteLen)) < 0) {
 		(void) driver_free(argv);
 		return -1;
 	}
@@ -210,7 +202,7 @@ KECCAKF1600_API_EXEC(fips202, shake256)
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, sha3_224) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
+	size_t			inputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, sha3_224);
 
 static int
@@ -219,7 +211,7 @@ KECCAKF1600_API_INIT(fips202, sha3_224)
 	KECCAKF1600_API_F_ARGV_T(fips202, sha3_224) *argv;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -228,7 +220,7 @@ KECCAKF1600_API_INIT(fips202, sha3_224)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	x = (ErlDrvSizeT)(inputByteLen + (sizeof (KECCAKF1600_API_F_ARGV_T(fips202, sha3_224))));
 	p = (void *)(driver_alloc(x));
@@ -274,7 +266,7 @@ KECCAKF1600_API_EXEC(fips202, sha3_224)
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, sha3_256) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
+	size_t			inputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, sha3_256);
 
 static int
@@ -283,7 +275,7 @@ KECCAKF1600_API_INIT(fips202, sha3_256)
 	KECCAKF1600_API_F_ARGV_T(fips202, sha3_256) *argv;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -292,7 +284,7 @@ KECCAKF1600_API_INIT(fips202, sha3_256)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	x = (ErlDrvSizeT)(inputByteLen + (sizeof (KECCAKF1600_API_F_ARGV_T(fips202, sha3_256))));
 	p = (void *)(driver_alloc(x));
@@ -338,7 +330,7 @@ KECCAKF1600_API_EXEC(fips202, sha3_256)
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, sha3_384) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
+	size_t			inputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, sha3_384);
 
 static int
@@ -347,7 +339,7 @@ KECCAKF1600_API_INIT(fips202, sha3_384)
 	KECCAKF1600_API_F_ARGV_T(fips202, sha3_384) *argv;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -356,7 +348,7 @@ KECCAKF1600_API_INIT(fips202, sha3_384)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	x = (ErlDrvSizeT)(inputByteLen + (sizeof (KECCAKF1600_API_F_ARGV_T(fips202, sha3_384))));
 	p = (void *)(driver_alloc(x));
@@ -402,7 +394,7 @@ KECCAKF1600_API_EXEC(fips202, sha3_384)
 
 typedef struct KECCAKF1600_API_F_ARGV(fips202, sha3_512) {
 	const unsigned char	*input;
-	unsigned int		inputByteLen;
+	size_t			inputByteLen;
 } KECCAKF1600_API_F_ARGV_T(fips202, sha3_512);
 
 static int
@@ -411,7 +403,7 @@ KECCAKF1600_API_INIT(fips202, sha3_512)
 	KECCAKF1600_API_F_ARGV_T(fips202, sha3_512) *argv;
 	int type;
 	int type_length;
-	unsigned int inputByteLen;
+	size_t inputByteLen;
 	ErlDrvSizeT x;
 	void *p;
 
@@ -420,7 +412,7 @@ KECCAKF1600_API_INIT(fips202, sha3_512)
 		return -1;
 	}
 
-	inputByteLen = (unsigned int)(type_length);
+	inputByteLen = (size_t)(type_length);
 
 	x = (ErlDrvSizeT)(inputByteLen + (sizeof (KECCAKF1600_API_F_ARGV_T(fips202, sha3_512))));
 	p = (void *)(driver_alloc(x));

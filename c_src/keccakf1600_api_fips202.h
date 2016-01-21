@@ -5,7 +5,6 @@
 #define KECCAKF1600_API_FIPS202_H
 
 #include "keccakf1600_api.h"
-#include "Keccak-readable-and-compact.h"
 
 extern keccakf1600_function_t	keccakf1600_functions_fips202[];
 
