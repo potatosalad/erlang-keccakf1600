@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/potatosalad/erlang-keccakf1600.png?branch=master)](https://travis-ci.org/potatosalad/erlang-keccakf1600) [![Hex.pm](https://img.shields.io/hexpm/v/keccakf1600.svg)](https://hex.pm/packages/keccakf1600)
 
-[keccakf1600](https://keccakf1600.org) asynchronous port driver for Erlang and Elixir.
+[Keccak-f[1600]](http://keccak.noekeon.org/) asynchronous port driver for Erlang and Elixir.
 
 ## Installation
 
