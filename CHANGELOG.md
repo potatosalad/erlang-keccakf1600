@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (2016-02-04)
+
+* Fixes
+  * Minor rebar configuration fix.
+
 ## 1.0.0 (2016-02-04)
 
 * Enhancements
