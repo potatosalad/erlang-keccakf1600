@@ -3,11 +3,23 @@
 
 #include "keccakf1600_api.h"
 #include "keccakf1600_api_fips202.h"
+#include "keccakf1600_api_sha3_224.h"
+#include "keccakf1600_api_sha3_256.h"
+#include "keccakf1600_api_sha3_384.h"
+#include "keccakf1600_api_sha3_512.h"
+#include "keccakf1600_api_shake128.h"
+#include "keccakf1600_api_shake256.h"
 
 #define KECCAKF1600_NS(NAMESPACE)	{ #NAMESPACE, keccakf1600_functions_ ## NAMESPACE }
 
 static keccakf1600_namespace_t	keccakf1600_namespaces[] = {
 	KECCAKF1600_NS(fips202),
+	KECCAKF1600_NS(sha3_224),
+	KECCAKF1600_NS(sha3_256),
+	KECCAKF1600_NS(sha3_384),
+	KECCAKF1600_NS(sha3_512),
+	KECCAKF1600_NS(shake128),
+	KECCAKF1600_NS(shake256),
 	{NULL}
 };
 

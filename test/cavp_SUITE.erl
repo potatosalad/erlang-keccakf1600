@@ -24,7 +24,7 @@
 -export([end_per_group/2]).
 
 %% Tests.
--export([fips_sha3/1]).
+-export([fips202/1]).
 
 %% Macros.
 -define(tv_ok(T, M, F, A, E),
@@ -43,7 +43,7 @@ all() ->
 groups() ->
 	[
 		{'keccaktestvectors', [], [
-			fips_sha3
+			fips202
 		]}
 	].
 
@@ -59,7 +59,7 @@ init_per_group('keccaktestvectors', Config) ->
 	Folder = data_file("keccaktestvectors", Config),
 	{ok, Entries} = file:list_dir(Folder),
 	Files = [filename:join([Folder, Entry]) || Entry <- Entries],
-	[{sha3_files, Files} | Config].
+	[{fips202_files, Files} | Config].
 
 end_per_group(_Group, _Config) ->
 	ok.
@@ -68,9 +68,9 @@ end_per_group(_Group, _Config) ->
 %% Tests
 %%====================================================================
 
-fips_sha3(Config) ->
-	Files = [File || File <- ?config(sha3_files, Config)],
-	lists:foldl(fun fips_sha3/2, Config, Files).
+fips202(Config) ->
+	Files = [File || File <- ?config(fips202_files, Config)],
+	lists:foldl(fun fips202/2, Config, Files).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions
@@ -124,7 +124,7 @@ data_setup_multiple([], _Directory, []) ->
 	ok.
 
 %% @private
-fips_sha3(File, Config) ->
+fips202(File, Config) ->
 	Options = case iolist_to_binary(filename:basename(File)) of
 		<< "ShortMsgKAT_SHA3-", BitsBin:3/binary, _/binary >> ->
 			Bits = binary_to_integer(BitsBin),
@@ -141,10 +141,10 @@ fips_sha3(File, Config) ->
 	end,
 	Vectors = fips_testvector:from_file(File),
 	io:format("~s", [filename:basename(File)]),
-	fips_sha3(Vectors, Options, Config).
+	fips202(Vectors, Options, Config).
 
 %% @private
-fips_sha3([
+fips202([
 			{vector, {<<"Len">>, Len}, _},
 			{vector, {<<"Msg">>, Msg}, _},
 			{vector, {<<"MD">>, MD}, _}
@@ -153,11 +153,20 @@ fips_sha3([
 	InputBytes = binary:part(Msg, 0, Len div 8),
 	case keccakf1600_fips202:Function(InputBytes) of
 		MD ->
-			fips_sha3(Vectors, {Function, Arity, OutputByteLen}, Config);
-		Other ->
-			ct:fail({{keccakf1600_fips202, Function, [InputBytes]}, {expected, MD}, {got, Other}})
+			ok;
+		Other0 ->
+			ct:fail({{keccakf1600_fips202, Function, [InputBytes]}, {expected, hex:bin_to_hex(MD)}, {got, hex:bin_to_hex(Other0)}})
+	end,
+	Module = list_to_atom("keccakf1600_" ++ atom_to_list(Function)),
+	Sponge0 = Module:init(),
+	Sponge1 = Module:update(Sponge0, InputBytes),
+	case Module:final(Sponge1) of
+		MD ->
+			fips202(Vectors, {Function, Arity, OutputByteLen}, Config);
+		Other1 ->
+			ct:fail({{Module, final, [Sponge1]}, {expected, hex:bin_to_hex(MD)}, {got, hex:bin_to_hex(Other1)}})
 	end;
-fips_sha3([
+fips202([
 			{vector, {<<"Len">>, Len}, _},
 			{vector, {<<"Msg">>, Msg}, _},
 			{vector, {<<"Squeezed">>, Squeezed}, _}
@@ -166,23 +175,32 @@ fips_sha3([
 	InputBytes = binary:part(Msg, 0, Len div 8),
 	case keccakf1600_fips202:Function(InputBytes, OutputByteLen) of
 		Squeezed ->
-			fips_sha3(Vectors, {Function, Arity, OutputByteLen}, Config);
-		Other ->
-			ct:fail({{keccakf1600_fips202, Function, [InputBytes, OutputByteLen]}, {expected, hex:bin_to_hex(Squeezed)}, {got, hex:bin_to_hex(Other)}})
+			ok;
+		Other0 ->
+			ct:fail({{keccakf1600_fips202, Function, [InputBytes, OutputByteLen]}, {expected, hex:bin_to_hex(Squeezed)}, {got, hex:bin_to_hex(Other0)}})
+	end,
+	Module = list_to_atom("keccakf1600_" ++ atom_to_list(Function)),
+	Sponge0 = Module:init(),
+	Sponge1 = Module:update(Sponge0, InputBytes),
+	case Module:final(Sponge1, OutputByteLen) of
+		Squeezed ->
+			fips202(Vectors, {Function, Arity, OutputByteLen}, Config);
+		Other1 ->
+			ct:fail({{Module, final, [Sponge1, OutputByteLen]}, {expected, hex:bin_to_hex(Squeezed)}, {got, hex:bin_to_hex(Other1)}})
 	end;
-fips_sha3([
+fips202([
 			{vector, {<<"Len">>, _Len}, _},
 			{vector, {<<"Msg">>, _Msg}, _},
 			{vector, {<<"MD">>, _MD}, _}
 			| Vectors
 		], Options, Config) ->
-	fips_sha3(Vectors, Options, Config);
-fips_sha3([
+	fips202(Vectors, Options, Config);
+fips202([
 			{vector, {<<"Len">>, _Len}, _},
 			{vector, {<<"Msg">>, _Msg}, _},
 			{vector, {<<"Squeezed">>, _Squeezed}, _}
 			| Vectors
 		], Options, Config) ->
-	fips_sha3(Vectors, Options, Config);
-fips_sha3([], _Opts, _Config) ->
+	fips202(Vectors, Options, Config);
+fips202([], _Opts, _Config) ->
 	ok.
