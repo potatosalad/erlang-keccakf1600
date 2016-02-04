@@ -11,7 +11,7 @@ Add `keccakf1600` to your project's dependencies in `mix.exs`
 ```elixir
 defp deps do
   [
-    {:keccakf1600, "~> 1.0.0"}
+    {:keccakf1600, "~> 1.0.2"}
   ]
 end
 ```

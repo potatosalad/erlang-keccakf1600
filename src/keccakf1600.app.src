@@ -2,7 +2,7 @@
 %% vim: ts=4 sw=4 ft=erlang noet
 {application, keccakf1600, [
 	{description, "Keccak-f[1600] asynchronous port driver"},
-	{vsn, "1.0.1"},
+	{vsn, "1.0.2"},
 	{id, "git"},
 	{mod, {'keccakf1600_app', []}},
 	{registered, []},

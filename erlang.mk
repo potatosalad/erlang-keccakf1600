@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-79-g35e1283-dirty
+ERLANG_MK_VERSION = 2.0.0-pre.2-63-g250b348-dirty
 
 # Core configuration.
 
@@ -546,9 +546,9 @@ define dep_autopatch_rebar.erl
 		[] -> ok;
 		_ ->
 			Write("\npre-app::\n\t$$\(MAKE) -f c_src/Makefile.erlang.mk\n"),
-			PortSpecWrite(io_lib:format("ERL_CFLAGS = -finline-functions -Wall -fPIC -I \\"~s/erts-~s/include\\" -I \\"~s\\"\n",
+			PortSpecWrite(io_lib:format("ERL_CFLAGS = -finline-functions -Wall -fPIC -I ~s/erts-~s/include -I ~s\n",
 				[code:root_dir(), erlang:system_info(version), code:lib_dir(erl_interface, include)])),
-			PortSpecWrite(io_lib:format("ERL_LDFLAGS = -L \\"~s\\" -lerl_interface -lei\n",
+			PortSpecWrite(io_lib:format("ERL_LDFLAGS = -L ~s -lerl_interface -lei\n",
 				[code:lib_dir(erl_interface, lib)])),
 			[PortSpecWrite(["\n", E, "\n"]) || E <- OsEnv],
 			FilterEnv = fun(Env) ->
@@ -1208,14 +1208,11 @@ $(if $(filter-out -Werror,$1),\
 		$(shell echo $1 | cut -b 2-)))
 endef
 
-define compat_erlc_opts_to_list
-[$(call comma_list,$(foreach o,$(call compat_prepare_erlc_opts,$1),$(call compat_convert_erlc_opts,$o)))]
-endef
-
 define compat_rebar_config
 {deps, [$(call comma_list,$(foreach d,$(DEPS),\
 	{$(call dep_name,$d),".*",{git,"$(call dep_repo,$d)","$(call dep_commit,$d)"}}))]}.
-{erl_opts, $(call compat_erlc_opts_to_list,$(ERLC_OPTS))}.
+{erl_opts, [$(call comma_list,$(foreach o,$(call compat_prepare_erlc_opts,$(ERLC_OPTS)),\
+	$(call compat_convert_erlc_opts,$o)))]}.
 endef
 
 $(eval _compat_rebar_config = $$(compat_rebar_config))
@@ -1680,6 +1677,240 @@ endif
 list-templates:
 	$(verbose) echo Available templates: $(sort $(patsubst tpl_%,%,$(filter tpl_%,$(.VARIABLES))))
 
+# Copyright (c) 2014-2015, Loïc Hoguin <essen@ninenines.eu>
+# This file is part of erlang.mk and subject to the terms of the ISC License.
+
+.PHONY: clean-c_src distclean-c_src-env
+
+# Configuration.
+
+C_SRC_DIR ?= $(CURDIR)/c_src
+C_SRC_ENV ?= $(C_SRC_DIR)/env.mk
+C_SRC_OUTPUT ?= $(CURDIR)/priv/$(PROJECT)
+C_SRC_TYPE ?= shared
+
+# System type and C compiler/flags.
+
+ifeq ($(PLATFORM),msys2)
+	C_SRC_OUTPUT_EXECUTABLE_EXTENSION ?= .exe
+	C_SRC_OUTPUT_SHARED_EXTENSION ?= .dll
+else
+	C_SRC_OUTPUT_EXECUTABLE_EXTENSION ?=
+	C_SRC_OUTPUT_SHARED_EXTENSION ?= .so
+endif
+
+ifeq ($(C_SRC_TYPE),shared)
+	C_SRC_OUTPUT_FILE = $(C_SRC_OUTPUT)$(C_SRC_OUTPUT_SHARED_EXTENSION)
+else
+	C_SRC_OUTPUT_FILE = $(C_SRC_OUTPUT)$(C_SRC_OUTPUT_EXECUTABLE_EXTENSION)
+endif
+
+ifeq ($(PLATFORM),msys2)
+# We hardcode the compiler used on MSYS2. The default CC=cc does
+# not produce working code. The "gcc" MSYS2 package also doesn't.
+	CC = /mingw64/bin/gcc
+	CFLAGS ?= -O3 -std=c99 -finline-functions -Wall -Wmissing-prototypes
+	CXXFLAGS ?= -O3 -finline-functions -Wall
+else ifeq ($(PLATFORM),darwin)
+	CC ?= cc
+	CFLAGS ?= -O3 -std=c99 -arch x86_64 -finline-functions -Wall -Wmissing-prototypes
+	CXXFLAGS ?= -O3 -arch x86_64 -finline-functions -Wall
+	LDFLAGS ?= -arch x86_64 -flat_namespace -undefined suppress
+else ifeq ($(PLATFORM),freebsd)
+	CC ?= cc
+	CFLAGS ?= -O3 -std=c99 -finline-functions -Wall -Wmissing-prototypes
+	CXXFLAGS ?= -O3 -finline-functions -Wall
+else ifeq ($(PLATFORM),linux)
+	CC ?= gcc
+	CFLAGS ?= -O3 -std=c99 -finline-functions -Wall -Wmissing-prototypes
+	CXXFLAGS ?= -O3 -finline-functions -Wall
+endif
+
+ifneq ($(PLATFORM),msys2)
+	CFLAGS += -fPIC
+	CXXFLAGS += -fPIC
+endif
+
+CFLAGS += -I"$(ERTS_INCLUDE_DIR)" -I"$(ERL_INTERFACE_INCLUDE_DIR)"
+CXXFLAGS += -I"$(ERTS_INCLUDE_DIR)" -I"$(ERL_INTERFACE_INCLUDE_DIR)"
+
+LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" -lerl_interface -lei
+
+# Verbosity.
+
+c_verbose_0 = @echo " C     " $(?F);
+c_verbose = $(c_verbose_$(V))
+
+cpp_verbose_0 = @echo " CPP   " $(?F);
+cpp_verbose = $(cpp_verbose_$(V))
+
+link_verbose_0 = @echo " LD    " $(@F);
+link_verbose = $(link_verbose_$(V))
+
+# Targets.
+
+ifeq ($(wildcard $(C_SRC_DIR)),)
+else ifneq ($(wildcard $(C_SRC_DIR)/Makefile),)
+app:: app-c_src
+
+test-build:: app-c_src
+
+app-c_src:
+	$(MAKE) -C $(C_SRC_DIR)
+
+clean::
+	$(MAKE) -C $(C_SRC_DIR) clean
+
+else
+
+ifeq ($(SOURCES),)
+SOURCES := $(sort $(foreach pat,*.c *.C *.cc *.cpp,$(call core_find,$(C_SRC_DIR)/,$(pat))))
+endif
+OBJECTS = $(addsuffix .o, $(basename $(SOURCES)))
+
+COMPILE_C = $(c_verbose) $(CC) $(CFLAGS) $(CPPFLAGS) -c
+COMPILE_CPP = $(cpp_verbose) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c
+
+app:: $(C_SRC_ENV) $(C_SRC_OUTPUT_FILE)
+
+test-build:: $(C_SRC_ENV) $(C_SRC_OUTPUT_FILE)
+
+$(C_SRC_OUTPUT_FILE): $(OBJECTS)
+	$(verbose) mkdir -p priv/
+	$(link_verbose) $(CC) $(OBJECTS) \
+		$(LDFLAGS) $(if $(filter $(C_SRC_TYPE),shared),-shared) $(LDLIBS) \
+		-o $(C_SRC_OUTPUT_FILE)
+
+%.o: %.c
+	$(COMPILE_C) $(OUTPUT_OPTION) $<
+
+%.o: %.cc
+	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
+
+%.o: %.C
+	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
+
+%.o: %.cpp
+	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
+
+clean:: clean-c_src
+
+clean-c_src:
+	$(gen_verbose) rm -f $(C_SRC_OUTPUT_FILE) $(OBJECTS)
+
+endif
+
+ifneq ($(wildcard $(C_SRC_DIR)),)
+$(C_SRC_ENV):
+	$(verbose) $(ERL) -eval "file:write_file(\"$(call core_native_path,$(C_SRC_ENV))\", \
+		io_lib:format( \
+			\"ERTS_INCLUDE_DIR ?= ~s/erts-~s/include/~n\" \
+			\"ERL_INTERFACE_INCLUDE_DIR ?= ~s~n\" \
+			\"ERL_INTERFACE_LIB_DIR ?= ~s~n\", \
+			[code:root_dir(), erlang:system_info(version), \
+			code:lib_dir(erl_interface, include), \
+			code:lib_dir(erl_interface, lib)])), \
+		halt()."
+
+distclean:: distclean-c_src-env
+
+distclean-c_src-env:
+	$(gen_verbose) rm -f $(C_SRC_ENV)
+
+-include $(C_SRC_ENV)
+endif
+
+# Templates.
+
+define bs_c_nif
+#include "erl_nif.h"
+
+static int loads = 0;
+
+static int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
+{
+	/* Initialize private data. */
+	*priv_data = NULL;
+
+	loads++;
+
+	return 0;
+}
+
+static int upgrade(ErlNifEnv* env, void** priv_data, void** old_priv_data, ERL_NIF_TERM load_info)
+{
+	/* Convert the private data to the new version. */
+	*priv_data = *old_priv_data;
+
+	loads++;
+
+	return 0;
+}
+
+static void unload(ErlNifEnv* env, void* priv_data)
+{
+	if (loads == 1) {
+		/* Destroy the private data. */
+	}
+
+	loads--;
+}
+
+static ERL_NIF_TERM hello(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+	if (enif_is_atom(env, argv[0])) {
+		return enif_make_tuple2(env,
+			enif_make_atom(env, "hello"),
+			argv[0]);
+	}
+
+	return enif_make_tuple2(env,
+		enif_make_atom(env, "error"),
+		enif_make_atom(env, "badarg"));
+}
+
+static ErlNifFunc nif_funcs[] = {
+	{"hello", 1, hello}
+};
+
+ERL_NIF_INIT($n, nif_funcs, load, NULL, upgrade, unload)
+endef
+
+define bs_erl_nif
+-module($n).
+
+-export([hello/1]).
+
+-on_load(on_load/0).
+on_load() ->
+	PrivDir = case code:priv_dir(?MODULE) of
+		{error, _} ->
+			AppPath = filename:dirname(filename:dirname(code:which(?MODULE))),
+			filename:join(AppPath, "priv");
+		Path ->
+			Path
+	end,
+	erlang:load_nif(filename:join(PrivDir, atom_to_list(?MODULE)), 0).
+
+hello(_) ->
+	erlang:nif_error({not_loaded, ?MODULE}).
+endef
+
+new-nif:
+ifneq ($(wildcard $(C_SRC_DIR)/$n.c),)
+	$(error Error: $(C_SRC_DIR)/$n.c already exists)
+endif
+ifneq ($(wildcard src/$n.erl),)
+	$(error Error: src/$n.erl already exists)
+endif
+ifdef in
+	$(verbose) $(MAKE) -C $(APPS_DIR)/$(in)/ new-nif n=$n in=
+else
+	$(verbose) mkdir -p $(C_SRC_DIR) src/
+	$(call render_template,bs_c_nif,$(C_SRC_DIR)/$n.c)
+	$(call render_template,bs_erl_nif,src/$n.erl)
+endif
+
 # Copyright (c) 2015, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
@@ -1788,18 +2019,12 @@ ct: $(if $(IS_APP),,apps-ct)
 else
 ct: test-build $(if $(IS_APP),,apps-ct)
 	$(verbose) mkdir -p $(CURDIR)/logs/
-	$(gen_verbose) $(CT_RUN) -sname ct_$(PROJECT) -suite $(addsuffix _SUITE,$(CT_SUITES)) $(CT_OPTS)
+	$(gen_verbose) $(CT_RUN) -suite $(addsuffix _SUITE,$(CT_SUITES)) $(CT_OPTS)
 endif
 
 ifneq ($(ALL_APPS_DIRS),)
-define ct_app_target
-apps-ct-$1:
-	$(MAKE) -C $1 ct IS_APP=1
-endef
-
-$(foreach app,$(ALL_APPS_DIRS),$(eval $(call ct_app_target,$(app))))
-
-apps-ct: $(addprefix apps-ct-,$(ALL_APPS_DIRS))
+apps-ct:
+	$(verbose) for app in $(ALL_APPS_DIRS); do $(MAKE) -C $$app ct IS_APP=1; done
 endif
 
 ifndef t
@@ -1816,7 +2041,7 @@ endif
 define ct_suite_target
 ct-$(1): test-build
 	$(verbose) mkdir -p $(CURDIR)/logs/
-	$(gen_verbose) $(CT_RUN) -sname ct_$(PROJECT) -suite $(addsuffix _SUITE,$(1)) $(CT_EXTRA) $(CT_OPTS)
+	$(gen_verbose) $(CT_RUN) -suite $(addsuffix _SUITE,$(1)) $(CT_EXTRA) $(CT_OPTS)
 endef
 
 $(foreach test,$(CT_SUITES),$(eval $(call ct_suite_target,$(test))))
@@ -1878,31 +2103,6 @@ else
 dialyze: $(DIALYZER_PLT)
 endif
 	$(verbose) dialyzer --no_native `$(call erlang,$(call filter_opts.erl,$(ERLC_OPTS)))` $(DIALYZER_DIRS) $(DIALYZER_OPTS)
-
-# Copyright (c) 2013-2015, Loïc Hoguin <essen@ninenines.eu>
-# This file is part of erlang.mk and subject to the terms of the ISC License.
-
-.PHONY: distclean-edoc edoc
-
-# Configuration.
-
-EDOC_OPTS ?=
-
-# Core targets.
-
-ifneq ($(wildcard doc/overview.edoc),)
-docs:: edoc
-endif
-
-distclean:: distclean-edoc
-
-# Plugin-specific targets.
-
-edoc: distclean-edoc doc-deps
-	$(gen_verbose) $(ERL) -eval 'edoc:application($(PROJECT), ".", [$(EDOC_OPTS)]), halt().'
-
-distclean-edoc:
-	$(gen_verbose) rm -f doc/*.css doc/*.html doc/*.png doc/edoc-info
 
 # Copyright (c) 2014 Dave Cottlehuber <dch@skunkwerks.at>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
