@@ -235,13 +235,13 @@ The examples below use the `Sponge1` for each algorithm from the examples above 
 #### SHAKE128 (`shake128`)
 
 ```erlang
-Out = keccakf1600:final(Sponge1).
+Out = keccakf1600:final(Sponge1, 16).
 % <<211,176,170,156,216,183,37,86,34,206,188,99,30,134,125,64>>
 ```
 
 #### SHAKE256 (`shake256`)
 
 ```erlang
-Out = keccakf1600:final(Sponge1).
+Out = keccakf1600:final(Sponge1, 16).
 % <<181,79,247,37,87,5,167,30,226,146,94,74,62,48,228,26>>
 ```
