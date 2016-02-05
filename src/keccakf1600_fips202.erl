@@ -13,28 +13,16 @@
 -define(NAMESPACE, fips202).
 
 %% API
--export([shake128/2]).
--export([shake256/2]).
 -export([sha3_224/1]).
 -export([sha3_256/1]).
 -export([sha3_384/1]).
 -export([sha3_512/1]).
+-export([shake128/2]).
+-export([shake256/2]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-
-shake128(InputBytes, OutputByteLen)
-		when is_binary(InputBytes)
-		andalso is_integer(OutputByteLen)
-		andalso OutputByteLen >= 0 ->
-	call(shake128, {InputBytes, OutputByteLen}).
-
-shake256(InputBytes, OutputByteLen)
-		when is_binary(InputBytes)
-		andalso is_integer(OutputByteLen)
-		andalso OutputByteLen >= 0 ->
-	call(shake256, {InputBytes, OutputByteLen}).
 
 sha3_224(InputBytes)
 		when is_binary(InputBytes) ->
@@ -51,6 +39,18 @@ sha3_384(InputBytes)
 sha3_512(InputBytes)
 		when is_binary(InputBytes) ->
 	call(sha3_512, {InputBytes}).
+
+shake128(InputBytes, OutputByteLen)
+		when is_binary(InputBytes)
+		andalso is_integer(OutputByteLen)
+		andalso OutputByteLen >= 0 ->
+	call(shake128, {InputBytes, OutputByteLen}).
+
+shake256(InputBytes, OutputByteLen)
+		when is_binary(InputBytes)
+		andalso is_integer(OutputByteLen)
+		andalso OutputByteLen >= 0 ->
+	call(shake256, {InputBytes, OutputByteLen}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions
