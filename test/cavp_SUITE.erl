@@ -129,15 +129,15 @@ fips202(File, Config) ->
 		<< "ShortMsgKAT_SHA3-", BitsBin:3/binary, _/binary >> ->
 			Bits = binary_to_integer(BitsBin),
 			Bytes = (Bits + 7) div 8,
-			Function = list_to_atom("sha3_" ++ integer_to_list(Bits)),
+			Type = list_to_atom("sha3_" ++ integer_to_list(Bits)),
 			Arity = 1,
-			{Function, Arity, Bytes};
+			{Type, Arity, Bytes};
 		<< "ShortMsgKAT_SHAKE", BitsBin:3/binary, _/binary >> ->
 			Bits = binary_to_integer(BitsBin),
 			Bytes = 512,
-			Function = list_to_atom("shake" ++ integer_to_list(Bits)),
+			Type = list_to_atom("shake" ++ integer_to_list(Bits)),
 			Arity = 2,
-			{Function, Arity, Bytes}
+			{Type, Arity, Bytes}
 	end,
 	Vectors = fips_testvector:from_file(File),
 	io:format("~s", [filename:basename(File)]),
@@ -149,45 +149,25 @@ fips202([
 			{vector, {<<"Msg">>, Msg}, _},
 			{vector, {<<"MD">>, MD}, _}
 			| Vectors
-		], {Function, Arity=1, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
+		], {Type, Arity=1, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
 	InputBytes = binary:part(Msg, 0, Len div 8),
-	case keccakf1600_fips202:Function(InputBytes) of
-		MD ->
-			ok;
-		Other0 ->
-			ct:fail({{keccakf1600_fips202, Function, [InputBytes]}, {expected, hex:bin_to_hex(MD)}, {got, hex:bin_to_hex(Other0)}})
-	end,
-	Module = list_to_atom("keccakf1600_" ++ atom_to_list(Function)),
-	Sponge0 = Module:init(),
-	Sponge1 = Module:update(Sponge0, InputBytes),
-	case Module:final(Sponge1) of
-		MD ->
-			fips202(Vectors, {Function, Arity, OutputByteLen}, Config);
-		Other1 ->
-			ct:fail({{Module, final, [Sponge1]}, {expected, hex:bin_to_hex(MD)}, {got, hex:bin_to_hex(Other1)}})
-	end;
+	?tv_ok(T0, keccakf1600, hash, [Type, InputBytes], MD),
+	Sponge0 = keccakf1600:init(Type),
+	Sponge1 = keccakf1600:update(Sponge0, InputBytes),
+	?tv_ok(T1, keccakf1600, final, [Sponge1], MD),
+	fips202(Vectors, {Type, Arity, OutputByteLen}, Config);
 fips202([
 			{vector, {<<"Len">>, Len}, _},
 			{vector, {<<"Msg">>, Msg}, _},
 			{vector, {<<"Squeezed">>, Squeezed}, _}
 			| Vectors
-		], {Function, Arity=2, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
+		], {Type, Arity=2, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
 	InputBytes = binary:part(Msg, 0, Len div 8),
-	case keccakf1600_fips202:Function(InputBytes, OutputByteLen) of
-		Squeezed ->
-			ok;
-		Other0 ->
-			ct:fail({{keccakf1600_fips202, Function, [InputBytes, OutputByteLen]}, {expected, hex:bin_to_hex(Squeezed)}, {got, hex:bin_to_hex(Other0)}})
-	end,
-	Module = list_to_atom("keccakf1600_" ++ atom_to_list(Function)),
-	Sponge0 = Module:init(),
-	Sponge1 = Module:update(Sponge0, InputBytes),
-	case Module:final(Sponge1, OutputByteLen) of
-		Squeezed ->
-			fips202(Vectors, {Function, Arity, OutputByteLen}, Config);
-		Other1 ->
-			ct:fail({{Module, final, [Sponge1, OutputByteLen]}, {expected, hex:bin_to_hex(Squeezed)}, {got, hex:bin_to_hex(Other1)}})
-	end;
+	?tv_ok(T0, keccakf1600, hash, [Type, InputBytes, OutputByteLen], Squeezed),
+	Sponge0 = keccakf1600:init(Type),
+	Sponge1 = keccakf1600:update(Sponge0, InputBytes),
+	?tv_ok(T1, keccakf1600, final, [Sponge1, OutputByteLen], Squeezed),
+	fips202(Vectors, {Type, Arity, OutputByteLen}, Config);
 fips202([
 			{vector, {<<"Len">>, _Len}, _},
 			{vector, {<<"Msg">>, _Msg}, _},

@@ -3,13 +3,12 @@
 CURDIR := $(shell pwd)
 BASEDIR := $(abspath $(CURDIR)/..)
 
-PROJECT := keccakf1600
-
-# Configuration.
+PROJECT ?= keccakf1600
+PROJECT := $(strip $(PROJECT))
 
 C_SRC_DIR ?= $(CURDIR)
 C_SRC_ENV ?= $(C_SRC_DIR)/env.mk
-C_SRC_OUTPUT ?= $(CURDIR)/../priv/$(PROJECT)_drv
+C_SRC_OUTPUT ?= $(CURDIR)/../priv/$(PROJECT)
 C_SRC_TYPE ?= shared
 
 # System type and C compiler/flags.
@@ -128,8 +127,6 @@ OBJECTS = $(addsuffix .o, $(basename $(SOURCES)))
 
 COMPILE_C = $(c_verbose) $(CC) $(CFLAGS) $(CPPFLAGS) -c
 COMPILE_CPP = $(cpp_verbose) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c
-
-.PHONY: platform
 
 all:: deps app
 
