@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0 (2019-07-28)
+
+* Enhancements
+  * Refactor to match [erlang-libdecaf](https://github.com/potatosalad/erlang-libdecaf).
+  * Add support for SPONGERNG functions.
+  * Improved testing setup and hopefully fix build problems on FreeBSD.
+
 ## 2.0.0 (2016-02-05)
 
 * Enhancements

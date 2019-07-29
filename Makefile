@@ -1,6 +1,6 @@
 PROJECT = keccakf1600
-PROJECT_DESCRIPTION = Keccak-f[1600] native functions for Erlang and Elixir.
-PROJECT_VERSION = 2.0.0
+PROJECT_DESCRIPTION = Keccak-f[1600] NIF with timeslice reductions for Erlang and Elixir.
+PROJECT_VERSION = 3.0.0
 
 include erlang.mk
 

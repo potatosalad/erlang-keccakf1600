@@ -1,8 +1,8 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 {application, keccakf1600, [
-	{description, "Keccak-f[1600] native functions for Erlang and Elixir."},
-	{vsn, "2.0.0"},
+	{description, "Keccak-f[1600] NIF with timeslice reductions for Erlang and Elixir."},
+	{vsn, "3.0.0"},
 	{id, "git"},
 	{registered, []},
 	{applications, [
@@ -10,7 +10,6 @@
 		stdlib
 	]},
 	{modules, []},
-	{maintainers, ["Andrew Bennett"]},
-	{licenses, ["Mozilla Public License Version 2.0"]},
+	{licenses, ["MIT"]},
 	{links, [{"Github", "https://github.com/potatosalad/erlang-keccakf1600"}]}
 ]}.
