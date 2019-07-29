@@ -1,14 +1,28 @@
-language: erlang
+language: generic
 
-sudo: false
+dist: bionic
 
-otp_release:
-  - 17.5
-  - 18.0
-  - 18.2
+sudo: required
+
+services:
+  - docker
 
 notifications:
   email: false
 
+env:
+  - OTP_VERSION=22.0
+
+cache:
+  directories:
+    - /home/travis/cache/docker-otp-22.0
+    - test/fips202_SUITE_data/keccaktestvectors
+
+before_install:
+  - rm -rf ./docker-otp-${OTP_VERSION}
+  - mkdir -p /home/travis/cache/docker-otp-${OTP_VERSION}
+  - ln -svf /home/travis/cache/docker-otp-${OTP_VERSION} ./docker-otp-${OTP_VERSION}
+  - make docker-setup DOCKER_OTP_VERSION=${OTP_VERSION}
+
 script:
-  - "make tests"
+  - make docker-test DOCKER_OTP_VERSION=${OTP_VERSION}

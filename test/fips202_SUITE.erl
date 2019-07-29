@@ -1,14 +1,14 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 %%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <andrew@pixid.com>
+%%% @author Andrew Bennett <potatosaladx@gmail.com>
 %%% @copyright 2014-2016, Andrew Bennett
 %%% @doc
 %%%
 %%% @end
-%%% Created :  20 Jan 2016 by Andrew Bennett <andrew@pixid.com>
+%%% Created :  29 Feb 2016 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(cavp_SUITE).
+-module(fips202_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -55,13 +55,14 @@ end_per_suite(_Config) ->
 	_ = application:stop(keccakf1600),
 	ok.
 
-init_per_group('keccaktestvectors', Config) ->
+init_per_group(G='keccaktestvectors', Config) ->
 	Folder = data_file("keccaktestvectors", Config),
 	{ok, Entries} = file:list_dir(Folder),
 	Files = [filename:join([Folder, Entry]) || Entry <- Entries],
-	[{fips202_files, Files} | Config].
+	[{fips202_files, Files} | keccakf1600_ct:start(G, Config)].
 
-end_per_group(_Group, _Config) ->
+end_per_group(_Group, Config) ->
+	keccakf1600_ct:stop(Config),
 	ok.
 
 %%====================================================================
@@ -83,14 +84,18 @@ data_file(File, Config) ->
 %% @private
 data_setup(Config) ->
 	lists:foldl(fun(F, C) ->
-		data_setup(F, C)
+		io:format(user, "\e[0;36m[FETCH] ~s\e[0m", [F]),
+		{ok, Progress} = keccakf1600_ct:progress_start(),
+		NewC = data_setup(F, C),
+		ok = keccakf1600_ct:progress_stop(Progress),
+		NewC
 	end, Config, [
 		"keccaktestvectors"
 	]).
 
 %% @private
 data_setup(F = "keccaktestvectors", Config) ->
-	BaseURL = "https://raw.githubusercontent.com/gvanas/KeccakCodePackage/1893f17c8029d0e6423f1fa4de4d15f76b188a27/TestVectors/",
+	BaseURL = "https://raw.githubusercontent.com/XKCP/XKCP/3eab79e98e873d0c78f7eec0346cc6510368fa7d/tests/TestVectors/",
 	Files = [
 		"ShortMsgKAT_SHA3-224.txt",
 		"ShortMsgKAT_SHA3-256.txt",
@@ -151,10 +156,10 @@ fips202([
 			| Vectors
 		], {Type, Arity=1, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
 	InputBytes = binary:part(Msg, 0, Len div 8),
-	?tv_ok(T0, keccakf1600, hash, [Type, InputBytes], MD),
-	Sponge0 = keccakf1600:init(Type),
-	Sponge1 = keccakf1600:update(Sponge0, InputBytes),
-	?tv_ok(T1, keccakf1600, final, [Sponge1], MD),
+	?tv_ok(T0, keccakf1600_sha3, hash, [Type, InputBytes], MD),
+	Sponge0 = keccakf1600_sha3:init(Type),
+	Sponge1 = keccakf1600_sha3:update(Sponge0, InputBytes),
+	?tv_ok(T1, keccakf1600_sha3, final, [Sponge1], MD),
 	fips202(Vectors, {Type, Arity, OutputByteLen}, Config);
 fips202([
 			{vector, {<<"Len">>, Len}, _},
@@ -163,10 +168,10 @@ fips202([
 			| Vectors
 		], {Type, Arity=2, OutputByteLen}, Config) when Len rem 8 =:= 0 ->
 	InputBytes = binary:part(Msg, 0, Len div 8),
-	?tv_ok(T0, keccakf1600, hash, [Type, InputBytes, OutputByteLen], Squeezed),
-	Sponge0 = keccakf1600:init(Type),
-	Sponge1 = keccakf1600:update(Sponge0, InputBytes),
-	?tv_ok(T1, keccakf1600, final, [Sponge1, OutputByteLen], Squeezed),
+	?tv_ok(T0, keccakf1600_sha3, hash, [Type, InputBytes, OutputByteLen], Squeezed),
+	Sponge0 = keccakf1600_sha3:init(Type),
+	Sponge1 = keccakf1600_sha3:update(Sponge0, InputBytes),
+	?tv_ok(T1, keccakf1600_sha3, final, [Sponge1, OutputByteLen], Squeezed),
 	fips202(Vectors, {Type, Arity, OutputByteLen}, Config);
 fips202([
 			{vector, {<<"Len">>, _Len}, _},
